@@ -1,0 +1,15 @@
+{
+  "name": "reacjyutest",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Cadastro de pessoas usando Reacjyu",
+  "scripts": {
+    "start": "reacjyu run"
+  },
+  "dependencies": {
+    "reacjyu": "github:abs-js/Reactjyu"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

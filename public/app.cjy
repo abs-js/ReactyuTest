@@ -1,0 +1,256 @@
+import Heading from CajyuLibs.reacjyu
+import Paragraph from CajyuLibs.reacjyu
+import Div from CajyuLibs.reacjyu
+import Input from CajyuLibs.reacjyu
+import Button from CajyuLibs.reacjyu
+import Element from CajyuLibs.reacjyu
+
+export fn Site stats {
+  var page = new Div()
+  page.setStyle("font-family", "Arial, sans-serif")
+  page.setStyle("max-width", "960px")
+  page.setStyle("margin", "32px auto")
+  page.setStyle("padding", "24px")
+  page.setStyle("color", "#172033")
+
+  var title = new Heading(1)
+  title.append("Cadastro de pessoas")
+  title.setStyle("margin-bottom", "8px")
+
+  var intro = new Paragraph()
+  intro.append("Cadastre, consulte e remova pessoas.")
+  intro.setStyle("color", "#586174")
+
+  var form = new Div()
+  form.setStyle("display", "grid")
+  form.setStyle("grid-template-columns", "repeat(auto-fit, minmax(180px, 1fr))")
+  form.setStyle("gap", "12px")
+  form.setStyle("margin", "24px 0")
+  form.setStyle("padding", "20px")
+  form.setStyle("border", "1px solid #dce1e8")
+  form.setStyle("border-radius", "12px")
+
+  var nameLabel = new Element("label")
+  nameLabel.append("Nome")
+  var nameInput = new Input({ id: "person-name", type: "text", placeholder: "Nome completo" })
+  nameInput.setStyle("box-sizing", "border-box")
+  nameInput.setStyle("width", "100%")
+  nameInput.setStyle("padding", "10px")
+  nameInput.setStyle("margin-top", "6px")
+  nameInput.setStyle("border", "1px solid #cbd2dc")
+  nameInput.setStyle("border-radius", "7px")
+  nameLabel.append(nameInput)
+
+  var emailLabel = new Element("label")
+  emailLabel.append("E-mail")
+  var emailInput = new Input({ id: "person-email", type: "email", placeholder: "voce@exemplo.com" })
+  emailInput.setStyle("box-sizing", "border-box")
+  emailInput.setStyle("width", "100%")
+  emailInput.setStyle("padding", "10px")
+  emailInput.setStyle("margin-top", "6px")
+  emailInput.setStyle("border", "1px solid #cbd2dc")
+  emailInput.setStyle("border-radius", "7px")
+  emailLabel.append(emailInput)
+
+  var ageLabel = new Element("label")
+  ageLabel.append("Idade")
+  var ageInput = new Input({ id: "person-age", type: "number", min: "0", max: "130", placeholder: "Ex.: 28" })
+  ageInput.setStyle("box-sizing", "border-box")
+  ageInput.setStyle("width", "100%")
+  ageInput.setStyle("padding", "10px")
+  ageInput.setStyle("margin-top", "6px")
+  ageInput.setStyle("border", "1px solid #cbd2dc")
+  ageInput.setStyle("border-radius", "7px")
+  ageLabel.append(ageInput)
+
+  var saveButton = new Button({ type: "button" })
+  saveButton.append("Cadastrar pessoa")
+  saveButton.setStyle("align-self", "end")
+  saveButton.setStyle("padding", "11px 14px")
+  saveButton.setStyle("border", "0")
+  saveButton.setStyle("border-radius", "7px")
+  saveButton.setStyle("background", "#2457d6")
+  saveButton.setStyle("color", "white")
+  saveButton.setStyle("cursor", "pointer")
+  saveButton.onclick = fn {
+    var nome = document.querySelector("#person-name").value.trim()
+    var email = document.querySelector("#person-email").value.trim()
+    var idade = Number(document.querySelector("#person-age").value)
+    var status = document.querySelector("#status-message")
+
+    if (!nome || !email || document.querySelector("#person-age").value === "" || idade < 0 || idade > 130) {
+      status.textContent = "Preencha nome, e-mail e uma idade válida."
+      status.style.color = "#b42318"
+      return
+    }
+
+    fetch("/__reacjyu/state")
+      .then(response => response.json())
+      .then(state => {
+        var pessoas = Array.isArray(state.pessoas) ? state.pessoas : []
+        var emailExiste = pessoas.some(pessoa => String(pessoa.email).toLowerCase() === email.toLowerCase())
+        if (emailExiste) {
+          status.textContent = "Já existe uma pessoa cadastrada com esse e-mail."
+          status.style.color = "#b42318"
+          return null
+        }
+        pessoas.push({ nome: nome, email: email, idade: idade })
+        return fetch("/__reacjyu/state", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ pessoas: pessoas })
+        })
+      })
+      .then(response => {
+        if (!response) return
+        document.querySelector("#person-name").value = ""
+        document.querySelector("#person-email").value = ""
+        document.querySelector("#person-age").value = ""
+        status.textContent = "Pessoa cadastrada com sucesso."
+        status.style.color = "#067647"
+        document.querySelector("#refresh-people").click()
+      })
+      .catch(error => {
+        status.textContent = "Não foi possível salvar. Verifique se o servidor está ativo."
+        status.style.color = "#b42318"
+      })
+  }
+
+  form.append(nameLabel)
+  form.append(emailLabel)
+  form.append(ageLabel)
+  form.append(saveButton)
+
+  var statusMessage = new Paragraph({ id: "status-message" })
+  statusMessage.setStyle("min-height", "20px")
+  statusMessage.setStyle("margin", "0 0 18px")
+
+  var listHeader = new Div()
+  listHeader.setStyle("display", "flex")
+  listHeader.setStyle("align-items", "center")
+  listHeader.setStyle("justify-content", "space-between")
+  listHeader.setStyle("gap", "12px")
+
+  var listTitle = new Heading(2)
+  listTitle.append("Pessoas cadastradas")
+  listTitle.setStyle("margin", "0")
+
+  var refreshButton = new Button({ id: "refresh-people", type: "button" })
+  refreshButton.append("Atualizar lista")
+  refreshButton.setStyle("padding", "9px 12px")
+  refreshButton.setStyle("border", "1px solid #cbd2dc")
+  refreshButton.setStyle("border-radius", "7px")
+  refreshButton.setStyle("background", "white")
+  refreshButton.setStyle("cursor", "pointer")
+  refreshButton.onclick = fn {
+    var tbody = document.querySelector("#people-rows")
+    var status = document.querySelector("#status-message")
+    tbody.textContent = ""
+    fetch("/__reacjyu/state")
+      .then(response => response.json())
+      .then(state => {
+        var pessoas = Array.isArray(state.pessoas) ? state.pessoas : []
+        if (pessoas.length === 0) {
+          var emptyRow = document.createElement("tr")
+          var emptyCell = document.createElement("td")
+          emptyCell.colSpan = 4
+          emptyCell.textContent = "Nenhuma pessoa cadastrada."
+          emptyCell.style.padding = "16px"
+          emptyCell.style.color = "#586174"
+          emptyRow.appendChild(emptyCell)
+          tbody.appendChild(emptyRow)
+          return
+        }
+        pessoas.forEach((pessoa, index) => {
+          var row = document.createElement("tr")
+          var values = [pessoa.nome || "", pessoa.email || "", String(pessoa.idade == null ? "" : pessoa.idade)]
+          values.forEach(valor => {
+            var cell = document.createElement("td")
+            cell.textContent = valor
+            cell.style.padding = "12px"
+            cell.style.borderBottom = "1px solid #e7eaf0"
+            row.appendChild(cell)
+          })
+          var actionCell = document.createElement("td")
+          actionCell.style.padding = "8px 12px"
+          actionCell.style.borderBottom = "1px solid #e7eaf0"
+          var removeButton = document.createElement("button")
+          removeButton.type = "button"
+          removeButton.textContent = "Remover"
+          removeButton.style.padding = "7px 10px"
+          removeButton.style.border = "0"
+          removeButton.style.borderRadius = "6px"
+          removeButton.style.background = "#fee4e2"
+          removeButton.style.color = "#b42318"
+          removeButton.style.cursor = "pointer"
+          removeButton.addEventListener("click", () => {
+            fetch("/__reacjyu/state")
+              .then(response => response.json())
+              .then(currentState => {
+                var atuais = Array.isArray(currentState.pessoas) ? currentState.pessoas : []
+                atuais.splice(index, 1)
+                return fetch("/__reacjyu/state", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ pessoas: atuais })
+                })
+              })
+              .then(() => document.querySelector("#refresh-people").click())
+              .catch(() => {
+                status.textContent = "Não foi possível remover a pessoa."
+                status.style.color = "#b42318"
+              })
+          })
+          actionCell.appendChild(removeButton)
+          row.appendChild(actionCell)
+          tbody.appendChild(row)
+        })
+      })
+      .catch(() => {
+        status.textContent = "Não foi possível carregar a lista."
+        status.style.color = "#b42318"
+      })
+  }
+
+  listHeader.append(listTitle)
+  listHeader.append(refreshButton)
+
+  var table = new Element("table")
+  table.setStyle("width", "100%")
+  table.setStyle("border-collapse", "collapse")
+  table.setStyle("margin-top", "16px")
+
+  var thead = new Element("thead")
+  var headRow = new Element("tr")
+  var headers = ["Nome", "E-mail", "Idade", "Ações"]
+  headers.forEach(label => {
+    var cell = new Element("th")
+    cell.append(label)
+    cell.setStyle("text-align", "left")
+    cell.setStyle("padding", "12px")
+    cell.setStyle("background", "#f2f4f7")
+    cell.setStyle("border-bottom", "1px solid #dce1e8")
+    headRow.append(cell)
+  })
+  thead.append(headRow)
+
+  var tbody = new Element("tbody", { id: "people-rows" })
+  var emptyRow = new Element("tr")
+  var emptyCell = new Element("td", { colspan: "4" })
+  emptyCell.append("Clique em Atualizar lista para carregar os cadastros.")
+  emptyCell.setStyle("padding", "16px")
+  emptyCell.setStyle("color", "#586174")
+  emptyRow.append(emptyCell)
+  tbody.append(emptyRow)
+  table.append(thead)
+  table.append(tbody)
+
+  page.append(title)
+  page.append(intro)
+  page.append(form)
+  page.append(statusMessage)
+  page.append(listHeader)
+  page.append(table)
+
+  return { html: { body: [page] } }
+}
