@@ -4,7 +4,7 @@
   "private": true,
   "description": "Cadastro de pessoas usando Reacjyu",
   "scripts": {
-    "start": "reacjyu run"
+    "start": "reacjyu run --host 0.0.0.0 --no-console"
   },
   "dependencies": {
     "reacjyu": "github:abs-js/Reactjyu"
